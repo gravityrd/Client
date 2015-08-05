@@ -1,0 +1,47 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'maven'
+}
+
+group = "com.gravityrd"
+description = """java client to interact with the Gravity recommendation engine"""
+version = '1.0'
+
+compileJava.options.encoding = 'UTF-8'
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+tasks.withType(JavaCompile) { options.incremental = true }
+
+repositories {
+    jcenter()
+    mavenCentral()
+    maven {
+        url "https://oss.sonatype.org/content/groups/public"
+    }
+}
+
+dependencies {
+    compile 'com.gravityrd:jsondto:1.0'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
+
+}
+
+project.task('sourceJar', group: 'gravity', type: Jar) {
+    from project.sourceSets.main.allSource
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from project.components.java
+            artifact project.sourceJar {
+                classifier "java-client"
+            }
+        }
+    }
+}
+
+task wrapper(type: Wrapper) {
+    distributionUrl = "http://services.gradle.org/distributions/gradle-2.5-all.zip"
+}
