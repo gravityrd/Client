@@ -1,8 +1,6 @@
 /**
  * The GravityClient and related classes are used to connect to and communicate with the
  * Gravity recommendation engine.
- *
- * @author György Dózsa
  */
 package com.gravityrd.recengclient.webshop;
 
@@ -34,9 +32,9 @@ import java.util.Map.Entry;
 /**
  * The GravityClient class can be used to send events, item and user information to
  * the recommendation engine and get recommendations.
- * <p/>
+ * <p>
  * Example usage:
- * <p/>
+ * </p>
  * <pre>
  * 		public GravityClient createGravityClient() {
  * 			GravityClient client = new GravityClient();
@@ -90,6 +88,7 @@ public class GravityClient {
 
 	/**
 	 * Set the URL of the server side interface. It has no default value, must be specified.
+	 * @param remoteUrl the server url provided by Gravity integration team
 	 */
 	public void setRemoteUrl(String remoteUrl) {
 		this.remoteUrl = remoteUrl;
@@ -102,6 +101,7 @@ public class GravityClient {
 	/**
 	 * Set the user name for the http authenticated connection. Leave it blank in case of
 	 * connection without authentication.
+	 * @param  userName user authentication name provided by Gravity
 	 */
 	public void setUserName(String userName) {
 		this.userName = userName;
@@ -114,6 +114,7 @@ public class GravityClient {
 	/**
 	 * Set the password for the http authenticated connection. Leave it blank in case of
 	 * connection without authentication.
+	 * @param  password user authentication password provided by Gravity
 	 */
 	public void setPassword(String password) {
 		this.password = password;
@@ -125,6 +126,7 @@ public class GravityClient {
 
 	/**
 	 * Set the timeout for the operations in millisecs. The default value is 3000 millisecs.
+	 * @param  readTimeout wait up to this millisecond for the request answers
 	 */
 	public void setReadTimeout(int readTimeout) {
 		this.readTimeout = readTimeout;
@@ -137,6 +139,8 @@ public class GravityClient {
 	 * @param async  true if the call is asynchronous. An asynchronous call
 	 *               returns immediately after an input data checking,
 	 *               a synchronous call returns only after the data is saved to database.
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer files
 	 */
 	public void addEvents(GravityEvent[] events, boolean async) throws GravityRecEngException, IOException {
 		HashMap<String, String> queryStringParams = new HashMap<>();
@@ -153,6 +157,8 @@ public class GravityClient {
 	 * @param async true if the call is asynchronous. An asynchronous call
 	 *              returns immediately after an input data checking,
 	 *              a synchronous call returns only after the data is saved to database.
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer files
 	 */
 	public void addUsers(GravityUser[] users, boolean async) throws GravityRecEngException, IOException {
 		HashMap<String, String> queryStringParams = new HashMap<>();
@@ -168,7 +174,9 @@ public class GravityClient {
 	 * @param items The items to add
 	 * @param async true if the call is asynchronous. An asynchronous call
 	 *              returns immediately after an input data checking,
-	 *              a synchronous call returns only after the data is saved to database.
+	 *              a synchronous call returns only after the data is saved to
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer filesdatabase.
 	 */
 	public void addItems(GravityItem[] items, boolean async) throws GravityRecEngException, IOException {
 		HashMap<String, String> queryStringParams = new HashMap<>();
@@ -184,6 +192,8 @@ public class GravityClient {
 	 *                 It should be always specified.
 	 * @param context  Additional information which describes the actual scenario.
 	 * @return An object containing the recommended items and other information about the recommendation.
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer files
 	 */
 	public GravityItemRecommendation getItemRecommendation(String userId, String cookieId, GravityRecommendationContext context) throws GravityRecEngException, IOException {
 		HashMap<String, String> queryStringParams = new HashMap<>();
@@ -206,6 +216,8 @@ public class GravityClient {
 	 *                 It should be always specified.
 	 * @param context  Additional Array of information which describes the actual scenarios.
 	 * @return An Array containing the recommended items for each scenario with other information about the recommendation.
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer files
 	 */
 	public GravityItemRecommendation[] getItemRecommendationBulk(String userId, String cookieId, GravityRecommendationContext[] context) throws GravityRecEngException, IOException {
 		HashMap<String, String> queryStringParams = new HashMap<>();
@@ -221,8 +233,10 @@ public class GravityClient {
 
 	/**
 	 * Simple test function to test without side effects whether the service is alive.
-	 *
-	 * @return "Hello " + <code>name</code>
+	 * @param name a test string
+	 * @return "Hello " + <code>name</code>* @throws IOException if cannot connect
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer files
 	 */
 	public String test(String name) throws GravityRecEngException, IOException {
 		HashMap<String, String> queryStringParams = new HashMap<>();
@@ -232,6 +246,8 @@ public class GravityClient {
 
 	/**
 	 * Simple test function to test throwing an exception.
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer files
 	 */
 	public void testException() throws GravityRecEngException, IOException {
 		sendRequest("testException", null, null, true, null);

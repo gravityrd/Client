@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'maven-publish'
+    id 'signing'
     id 'maven'
 }
 
@@ -14,34 +14,87 @@ targetCompatibility = 1.7
 tasks.withType(JavaCompile) { options.incremental = true }
 
 repositories {
-    jcenter()
-    mavenCentral()
     maven {
         url "https://oss.sonatype.org/content/groups/public"
     }
+    mavenCentral()
+    jcenter()
 }
 
 dependencies {
     compile 'com.gravityrd:jsondto:1.0'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
-
 }
 
 project.task('sourceJar', group: 'gravity', type: Jar) {
     from project.sourceSets.main.allSource
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from project.components.java
-            artifact project.sourceJar {
-                classifier "java-client"
-            }
-        }
-    }
-}
 
 task wrapper(type: Wrapper) {
     distributionUrl = "http://services.gradle.org/distributions/gradle-2.5-all.zip"
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+artifacts {
+    archives javadocJar, sourcesJar, jar
+}
+
+signing {
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            pom.project {
+
+                name 'java-client'
+                packaging 'jar'
+                // optionally artifactId can be defined here
+                description 'Gravity Java client to access recommendation engine.'
+                url 'https://gravityrd.com'
+
+                scm {
+                    connection 'https://github.com/gravityrd/java-client'
+                    developerConnection 'git@github.com:gravityrd/java-client.git'
+                    url 'https://github.com/gravityrd/java-client.git'
+                }
+
+                licenses {
+                    license {
+                        name 'GNU General Public License, version 2'
+                        url 'https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'gravityrd'
+                        name 'Gravity R&D'
+                        email 'bence.sipos@sgravityrd.com'
+                    }
+                }
+            }
+        }
+    }
 }
