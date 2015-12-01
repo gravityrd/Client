@@ -291,12 +291,22 @@ public class GravityClient {
 		wr.write(json);
 		wr.close();
 
-		if (connection.getResponseCode() == 500) { throw mapper.readValue(getBodyAsString(connection.getErrorStream()), GravityRecEngException.class); }
+		if (connection.getResponseCode() == 500) {
+			try {
+				throw mapper.readValue(getBodyAsString(connection.getErrorStream()), GravityRecEngException.class);
+			} catch (Exception e) {
+				throw new IllegalStateException(getBodyAsString(connection.getErrorStream()), e);
+			}
+		}
 
 		connection.getInputStream();
 
 		if (hasAnswer) {
-			return mapper.readValue(getBodyAsString(connection.getInputStream()), answerClass);
+			try {
+				return mapper.readValue(getBodyAsString(connection.getInputStream()), answerClass);
+			} catch (Exception e) {
+				throw new IllegalStateException(getBodyAsString(connection.getInputStream()), e);
+			}
 		} else {
 			return null;
 		}

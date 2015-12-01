@@ -6,7 +6,7 @@ plugins {
 
 group = "com.gravityrd"
 description = """java client to interact with the Gravity recommendation engine"""
-version = '1.0.6'
+version = '1.0.7'
 
 compileJava.options.encoding = 'UTF-8'
 sourceCompatibility = 1.7
