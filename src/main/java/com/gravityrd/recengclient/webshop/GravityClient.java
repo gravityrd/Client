@@ -50,7 +50,7 @@ import java.util.Map.Entry;
  * 		client.getItemRecommendation("user1", context);
  * </pre>
  */
-public class GravityClient {
+public final class GravityClient {
 
 	/**
 	 * The URL of the server side interface. It has no default value, must be specified.

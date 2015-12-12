@@ -6,7 +6,7 @@ plugins {
 
 group = "com.gravityrd"
 description = """java client to interact with the Gravity recommendation engine"""
-version = '1.0.7'
+version = '1.1.0'
 
 compileJava.options.encoding = 'UTF-8'
 sourceCompatibility = 1.7
@@ -22,14 +22,9 @@ repositories {
 }
 
 dependencies {
-    compile 'com.gravityrd:jsondto:1.1.0'
+    compile 'com.gravityrd:jsondto:1.2.0'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
 }
-
-project.task('sourceJar', group: 'gravity', type: Jar) {
-    from project.sourceSets.main.allSource
-}
-
 
 task wrapper(type: Wrapper) {
     distributionUrl = "http://services.gradle.org/distributions/gradle-2.5-all.zip"
@@ -50,6 +45,7 @@ artifacts {
 }
 
 signing {
+    required { gradle.taskGraph.hasTask("uploadArchives") }
     sign configurations.archives
 }
 
