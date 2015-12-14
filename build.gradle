@@ -19,6 +19,9 @@ repositories {
     }
     mavenCentral()
     jcenter()
+    maven {
+        url "http://artifactory.int.gravityrd.com/artifactory/repo"
+    }
 }
 
 dependencies {
