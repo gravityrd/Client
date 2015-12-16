@@ -18,6 +18,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.Authenticator;
@@ -26,7 +27,6 @@ import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -59,7 +59,7 @@ public final class GravityClient {
 	 * The version info of the client.
 	 */
 	@SuppressWarnings("FieldCanBeLocal")
-	private final String VERSION = "1.2.1";
+	private final String VERSION = "1.2.2";
 	/**
 	 * The URL of the server side interface. It has no default value, must be specified.
 	 */
@@ -169,11 +169,13 @@ public final class GravityClient {
 
 		Authenticator.setDefault(new UserPasswordAuthenticator(userName, password));
 
-		String json = mapper.writeValueAsString(requestBody);
+		final String requestJson = mapper.writeValueAsString(requestBody);
 
-		OutputStreamWriter wr = new OutputStreamWriter(connection.getOutputStream());
-		wr.write(json);
-		wr.close();
+		try (OutputStream outputStream = connection.getOutputStream()) {
+			OutputStreamWriter wr = new OutputStreamWriter(outputStream);
+			wr.write(requestJson);
+			wr.close();
+		}
 
 		if (connection.getResponseCode() == 500) {
 			try {
@@ -183,13 +185,14 @@ public final class GravityClient {
 			}
 		}
 
-		connection.getInputStream();
-
 		if (hasAnswer) {
-			try {
-				return mapper.readValue(getBodyAsString(connection.getInputStream()), answerClass);
-			} catch (Exception e) {
-				throw new IllegalStateException(getBodyAsString(connection.getInputStream()), e);
+			try (InputStream inputStream = connection.getInputStream()) {
+				final String bodyString = getBodyAsString(inputStream);
+				try {
+					return mapper.readValue(bodyString, answerClass);
+				} catch (Exception e) {
+					throw new IllegalStateException(bodyString, e);
+				}
 			}
 		} else {
 			return null;
