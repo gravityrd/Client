@@ -1,8 +1,8 @@
+package com.gravityrd.recengclient.webshop;
 /**
- * The GravityClient and related classes are used to connect to and communicate with the
+ * The com.gravityrd.recengclient.webshop.GravityClient and related classes are used to connect to and communicate with the
  * Gravity recommendation engine.
  */
-package com.gravityrd.recengclient.webshop;
 
 import com.gravityrd.receng.web.webshop.jsondto.GravityEvent;
 import com.gravityrd.receng.web.webshop.jsondto.GravityItem;
@@ -15,6 +15,7 @@ import com.gravityrd.receng.web.webshop.jsondto.GravityUser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,6 +25,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -32,20 +34,20 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * The GravityClient class can be used to send events, item and user information to
+ * The com.gravityrd.recengclient.webshop.GravityClient class can be used to send events, item and user information to
  * the recommendation engine and get recommendations.
  * <p>
  * Example usage:
  * </p>
  * <pre>
- * 		public GravityClient createGravityClient() {
- * 			GravityClient client = new GravityClient();
+ * 		public com.gravityrd.recengclient.webshop.GravityClient createGravityClient() {
+ * 			com.gravityrd.recengclient.webshop.GravityClient client = new com.gravityrd.recengclient.webshop.GravityClient();
  * 			client.setRemoteUrl("https://saas.gravityrd.com/grrec-CustomerID-war/WebshopServlet");
  * 			client.setUserName("sampleUser");
  * 			client.setPassword("samplePasswd");
  * 			return client;
  *        }
- * 		GravityClient client = createGravityClient();
+ * 		com.gravityrd.recengclient.webshop.GravityClient client = createGravityClient();
  * 		GravityRecommendationContext context = new GravityRecommendationContext();
  * 		context.numberLimit = 1;
  * 		context.scenarioId = "ITEM_PAGE";
@@ -59,7 +61,7 @@ public final class GravityClient {
 	 * The version info of the client.
 	 */
 	@SuppressWarnings("FieldCanBeLocal")
-	private final String VERSION = "1.2.2";
+	private final String VERSION = "1.2.3";
 	/**
 	 * The URL of the server side interface. It has no default value, must be specified.
 	 */
@@ -87,6 +89,93 @@ public final class GravityClient {
 	 */
 	public GravityScenario[] getScenarioInformation() throws GravityRecEngException, IOException {
 		return (GravityScenario[]) sendRequest("scenarioInfo", null, null, true, GravityScenario[].class);
+	}
+
+	private Object sendRequest(String methodName, Map<String, String> queryStringParams, Object requestBody, boolean hasAnswer, Class answerClass) throws GravityRecEngException, IOException {
+
+		HttpURLConnection connection = sendRequest(methodName, queryStringParams, requestBody);
+
+		if (connection.getResponseCode() == 500) {
+			try {
+				throw mapper.readValue(getBodyAsString(connection.getErrorStream()), GravityRecEngException.class);
+			} catch (Exception e) {
+				throw new IllegalStateException(getBodyAsString(connection.getErrorStream()), e);
+			}
+		}
+		if (hasAnswer) {
+			try (InputStream inputStream = connection.getInputStream()) {
+				final String bodyString = getBodyAsString(inputStream);
+				try {
+					return mapper.readValue(bodyString, answerClass);
+				} catch (Exception e) {
+					throw new IllegalStateException(bodyString, e);
+				}
+			}
+		} else {
+			return null;
+		}
+	}
+
+	private HttpURLConnection sendRequest(String methodName, Map<String, String> queryStringParams, Object requestBody) throws IOException {
+		HttpURLConnection connection = createConnection(methodName, queryStringParams);
+		setRequestHeaders(connection);
+		Authenticator.setDefault(new UserPasswordAuthenticator(userName, password));
+		sendPostRequest(requestBody, connection);
+
+		return connection;
+	}
+
+	private String getBodyAsString(InputStream input) throws IOException {
+		StringBuilder sb = new StringBuilder();
+		char[] buffer = new char[2048];
+		int readChars;
+		BufferedReader reader = new BufferedReader(new InputStreamReader(input, Charset.forName("UTF-8")));
+		while ((readChars = reader.read(buffer)) != -1) {
+			sb.append(buffer, 0, readChars);
+		}
+		return sb.toString();
+	}
+
+	private HttpURLConnection createConnection(String methodName, Map<String, String> queryStringParams) throws IOException {
+		final String urlString = remoteUrl + "/" + methodName + getRequestQueryString(methodName, queryStringParams);
+		URL url = new URL(urlString);
+		return (HttpURLConnection) url.openConnection();
+	}
+
+	private void setRequestHeaders(HttpURLConnection connection) throws ProtocolException {
+		connection.setRequestMethod("POST");
+		connection.addRequestProperty("User-Agent", "Gravity-RecEng-JavaClient-Webshop");
+		connection.addRequestProperty("X-Gravity-RecEng-JavaClient-Webshop-Version", VERSION);
+		connection.setReadTimeout(readTimeout);
+		connection.setConnectTimeout(readTimeout);
+		connection.addRequestProperty("Content-Type", "application/json; charset=utf-8");
+	}
+
+	private void sendPostRequest(Object requestBody, HttpURLConnection connection) throws IOException {
+		connection.setDoOutput(true);
+		final DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+		final String requestJson = mapper.writeValueAsString(requestBody);
+		wr.writeBytes(requestJson);
+		wr.flush();
+		wr.close();
+	}
+
+	private String getRequestQueryString(String methodName, Map<String, String> queryStringParams) throws UnsupportedEncodingException {
+		StringBuilder queryString = new StringBuilder();
+
+		if (queryStringParams != null) {
+			for (Entry<String, String> pair : queryStringParams.entrySet()) {
+				queryString.append(URLEncoder.encode(pair.getKey(), "UTF-8")).append("=");
+				queryString.append(URLEncoder.encode(pair.getValue(), "UTF-8")).append("&");
+			}
+		}
+
+		if (queryString.length() > 0) {
+			queryString.deleteCharAt(queryString.length() - 1);
+			queryString.insert(0, "&");
+		}
+
+		return "?method=" + URLEncoder.encode(methodName, "UTF-8") + queryString.toString();
 	}
 
 	public String getRemoteUrl() {
@@ -153,79 +242,6 @@ public final class GravityClient {
 		HashMap<String, String> queryStringParams = new HashMap<>();
 		queryStringParams.put("async", Boolean.toString(async));
 		sendRequest("addEvents", queryStringParams, events, false, null);
-	}
-
-	private Object sendRequest(String methodName, Map<String, String> queryStringParams, Object requestBody, boolean hasAnswer, Class answerClass) throws GravityRecEngException, IOException {
-
-		URL myUrl = new URL(remoteUrl + "/" + methodName + getRequestQueryString(methodName, queryStringParams));
-		HttpURLConnection connection = (HttpURLConnection) myUrl.openConnection();
-		connection.setRequestMethod("POST");
-
-		connection.addRequestProperty("X-Gravity-RecEng-JavaClient-Webshop-Version", VERSION);
-
-		connection.setReadTimeout(readTimeout);
-		connection.setConnectTimeout(readTimeout);
-		connection.setDoOutput(true);
-
-		Authenticator.setDefault(new UserPasswordAuthenticator(userName, password));
-
-		final String requestJson = mapper.writeValueAsString(requestBody);
-
-		try (OutputStream outputStream = connection.getOutputStream()) {
-			OutputStreamWriter wr = new OutputStreamWriter(outputStream);
-			wr.write(requestJson);
-			wr.close();
-		}
-
-		if (connection.getResponseCode() == 500) {
-			try {
-				throw mapper.readValue(getBodyAsString(connection.getErrorStream()), GravityRecEngException.class);
-			} catch (Exception e) {
-				throw new IllegalStateException(getBodyAsString(connection.getErrorStream()), e);
-			}
-		}
-
-		if (hasAnswer) {
-			try (InputStream inputStream = connection.getInputStream()) {
-				final String bodyString = getBodyAsString(inputStream);
-				try {
-					return mapper.readValue(bodyString, answerClass);
-				} catch (Exception e) {
-					throw new IllegalStateException(bodyString, e);
-				}
-			}
-		} else {
-			return null;
-		}
-	}
-
-	private String getRequestQueryString(String methodName, Map<String, String> queryStringParams) throws UnsupportedEncodingException {
-		StringBuilder queryString = new StringBuilder();
-
-		if (queryStringParams != null) {
-			for (Entry<String, String> pair : queryStringParams.entrySet()) {
-				queryString.append(URLEncoder.encode(pair.getKey(), "UTF-8")).append("=");
-				queryString.append(URLEncoder.encode(pair.getValue(), "UTF-8")).append("&");
-			}
-		}
-
-		if (queryString.length() > 0) {
-			queryString.deleteCharAt(queryString.length() - 1);
-			queryString.insert(0, "&");
-		}
-
-		return "?method=" + URLEncoder.encode(methodName, "UTF-8") + queryString.toString();
-	}
-
-	private String getBodyAsString(InputStream input) throws IOException {
-		StringBuilder sb = new StringBuilder();
-		char[] buffer = new char[2048];
-		int readChars;
-		BufferedReader reader = new BufferedReader(new InputStreamReader(input, Charset.forName("UTF-8")));
-		while ((readChars = reader.read(buffer)) != -1) {
-			sb.append(buffer, 0, readChars);
-		}
-		return sb.toString();
 	}
 
 	/**
