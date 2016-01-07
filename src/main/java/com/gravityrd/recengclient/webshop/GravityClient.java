@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.Authenticator;
 import java.net.HttpURLConnection;
@@ -61,7 +60,7 @@ public final class GravityClient {
 	 * The version info of the client.
 	 */
 	@SuppressWarnings("FieldCanBeLocal")
-	private final String VERSION = "1.2.3";
+	private final String VERSION = "1.2.4";
 	/**
 	 * The URL of the server side interface. It has no default value, must be specified.
 	 */
@@ -153,11 +152,13 @@ public final class GravityClient {
 
 	private void sendPostRequest(Object requestBody, HttpURLConnection connection) throws IOException {
 		connection.setDoOutput(true);
-		final DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-		final String requestJson = mapper.writeValueAsString(requestBody);
-		wr.writeBytes(requestJson);
-		wr.flush();
-		wr.close();
+		try (OutputStream outputStream = connection.getOutputStream()) {
+			try (final DataOutputStream wr = new DataOutputStream(outputStream)) {
+				final String requestJson = mapper.writeValueAsString(requestBody);
+				wr.writeBytes(requestJson);
+				wr.flush();
+			}
+		}
 	}
 
 	private String getRequestQueryString(String methodName, Map<String, String> queryStringParams) throws UnsupportedEncodingException {
