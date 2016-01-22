@@ -12,11 +12,14 @@ import com.gravityrd.receng.web.webshop.jsondto.GravityRecommendationContext;
 import com.gravityrd.receng.web.webshop.jsondto.facet.FacetRequest;
 import com.gravityrd.receng.web.webshop.jsondto.facet.FacetRequest.Filter;
 import com.gravityrd.receng.web.webshop.jsondto.facet.FacetRequest.FilterLogic;
+import com.gravityrd.receng.web.webshop.jsondto.facet.DynamicRangeFacetRequest;
 import com.gravityrd.receng.web.webshop.jsondto.facet.Range;
 import com.gravityrd.receng.web.webshop.jsondto.facet.RangeFacetRequest;
 import com.gravityrd.receng.web.webshop.jsondto.facet.TermFacetRequest;
 import com.gravityrd.receng.web.webshop.jsondto.facet.TermFacetRequest.Order;
 import com.gravityrd.recengclient.webshop.GravityRecommendationContextBuilder.FacetBuilder.FacetRequestBuilder;
+import com.gravityrd.recengclient.webshop.GravityRecommendationContextBuilder.FacetBuilder.RangeFacetBuilder;
+import com.gravityrd.recengclient.webshop.GravityRecommendationContextBuilder.FacetBuilder.TermFacetBuilder;
 
 public final class GravityRecommendationContextBuilder {
 
@@ -141,7 +144,51 @@ public final class GravityRecommendationContextBuilder {
 		public static RangeFacetBuilder range(String field, List<Range> ranges) {
 			return new RangeFacetBuilder(field, ranges);
 		}
+	
+		public static DynamicRangeFacetBuilder dynamicRange(String field, int maxRangeCount, int quantum) {
+			return new DynamicRangeFacetBuilder(field, maxRangeCount, quantum);
+		}
 	}
+
+	public static final class DynamicRangeFacetBuilder extends FacetRequestBuilder<DynamicRangeFacetBuilder, DynamicRangeFacetRequest, Range> {
+		private List<Range> ranges = new ArrayList<Range>();
+		private int maxRangeCount;
+		private int quantum;
+
+		public DynamicRangeFacetBuilder(String field, int maxRangeCount, int quantum) {
+			super(field);
+			this.maxRangeCount = maxRangeCount;
+			this.quantum = quantum;
+		}
+
+		public DynamicRangeFacetBuilder filterValue(Double from, Double to) {
+			filterValues.add(new Range(from, to));
+			return this;
+		}
+		
+		@Override
+		public DynamicRangeFacetRequest build() {
+			Filter<Range> filter = null;
+			if (filterValues.size() > 0) {
+				filter = new Filter<Range>(filterLogic, filterValues);
+			}
+			return new DynamicRangeFacetRequest(field, maxRangeCount, quantum, filter);
+		}
+	}
+	
+	
+	public static TermFacetBuilder term(String field, int count) {
+		return new TermFacetBuilder(field, count);
+	}
+
+	public static RangeFacetBuilder range(String field) {
+		return new RangeFacetBuilder(field);
+	}
+
+	public static RangeFacetBuilder range(String field, List<Range> ranges) {
+		return new RangeFacetBuilder(field, ranges);
+	}
+
 
 	
 	public GravityRecommendationContextBuilder(String scenarioId, int numberLimit) {
