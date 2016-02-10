@@ -6,7 +6,7 @@ plugins {
 
 group = "com.gravityrd"
 description = """java client to interact with the Gravity recommendation engine"""
-version = '1.2.9'
+version = '1.2.11'
 
 compileJava.options.encoding = 'UTF-8'
 sourceCompatibility = 1.7
@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.gravityrd:jsondto:1.2.9'
+    compile 'com.gravityrd:jsondto:1.2.11'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
 }
 
