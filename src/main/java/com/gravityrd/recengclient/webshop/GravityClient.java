@@ -94,7 +94,7 @@ public final class GravityClient {
 
 		HttpURLConnection connection = sendRequest(methodName, queryStringParams, requestBody);
 
-		if (connection.getResponseCode() == 500) {
+		if (connection.getResponseCode() / 100 != 2) {
 			try {
 				throw mapper.readValue(getBodyAsString(connection.getErrorStream()), GravityRecEngException.class);
 			} catch (Exception e) {
