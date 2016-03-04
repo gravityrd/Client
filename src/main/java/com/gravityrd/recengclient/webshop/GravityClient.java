@@ -12,6 +12,8 @@ import com.gravityrd.receng.web.webshop.jsondto.GravityRecommendationContext;
 import com.gravityrd.receng.web.webshop.jsondto.GravityScenario;
 import com.gravityrd.receng.web.webshop.jsondto.GravityUser;
 
+import org.apache.logging.log4j.LogManager;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -55,10 +57,11 @@ import java.util.Map.Entry;
  * 		client.getItemRecommendation("user1", context);
  * </pre>
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({ "unused", "WeakerAccess" })
 public final class GravityClient {
 
 	protected static final ObjectMapper mapper = new ObjectMapper();
+	private static final org.apache.logging.log4j.Logger logger = LogManager.getLogger();
 
 	static {
 		mapper.getFactory().configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true);
@@ -69,7 +72,7 @@ public final class GravityClient {
 	 * The version info of the client.
 	 */
 	@SuppressWarnings("FieldCanBeLocal")
-	private final String VERSION = "1.2.13";
+	private final String VERSION = "1.3.1";
 	/**
 	 * The URL of the server side interface. It has no default value, must be specified.
 	 */
@@ -103,19 +106,12 @@ public final class GravityClient {
 
 		HttpURLConnection connection = sendRequest(methodName, queryStringParams, requestBody);
 
-		if (connection.getResponseCode() / 100 != 2) {
-			final String responseBody = getBodyAsString(connection.getErrorStream());
-			final String message = String.format("response code %d, for method %s | query %s, url %s | request content %s", connection.getResponseCode(), methodName, queryStringParams, remoteUrl, requestBody.getClass().isArray() ? Arrays.toString((Object[]) requestBody) : requestBody);
-			if (responseBody == null) { throw new IllegalStateException(message); }
-			try {
-				throw mapper.readValue(responseBody, GravityRecEngException.class);
-			} catch (Exception e) {
-				throw new IllegalStateException(message + " body " + responseBody, e);
-			}
-		}
+		if (connection.getResponseCode() / 100 != 2) handleError(requestBody, connection);
+
 		if (hasAnswer) {
 			try (InputStream inputStream = connection.getInputStream()) {
 				final String bodyString = getBodyAsString(inputStream);
+				logger.debug("got answer: '{}'", bodyString);
 				try {
 					return mapper.readValue(bodyString, answerClass);
 				} catch (Exception e) {
@@ -130,9 +126,33 @@ public final class GravityClient {
 	private HttpURLConnection sendRequest(String methodName, Map<String, String> queryStringParams, Object requestBody) throws IOException {
 		HttpURLConnection connection = createConnection(methodName, queryStringParams);
 		setRequestHeaders(connection);
+		if (userName == null) throw new IllegalStateException("set the user name");
+		if (password == null) throw new IllegalStateException("set the password");
 		Authenticator.setDefault(new UserPasswordAuthenticator(userName, password));
 		sendPostRequest(requestBody, connection);
 		return connection;
+	}
+
+	private void handleError(Object requestBody, HttpURLConnection connection) throws IOException, GravityRecEngException {
+
+		final String responseBody = getBodyAsString(connection.getErrorStream());
+		final String b = requestBody == null ? "" : (requestBody.getClass().isArray() ? Arrays.toString((Object[]) requestBody) : requestBody.toString());
+		final String message = String.format("response code %d, for url %s | request content '%s' | answer '%s'", connection.getResponseCode(), connection.getURL(), b, responseBody);
+		logger.error(message);
+		if (responseBody == null) {
+			throw new IllegalStateException(message);
+		} else {
+			try {
+				// noinspection UnnecessaryLocalVariable
+				GravityRecEngException exception = mapper.readValue(responseBody, GravityRecEngException.class);
+				throw exception;
+			} catch (GravityRecEngException e) {
+				throw e;
+			} catch (Exception e) {
+				throw new IllegalStateException(message + " body " + responseBody, e);
+			}
+		}
+
 	}
 
 	private String getBodyAsString(InputStream input) throws IOException {
@@ -148,6 +168,7 @@ public final class GravityClient {
 	}
 
 	private HttpURLConnection createConnection(String methodName, Map<String, String> queryStringParams) throws IOException {
+		if (remoteUrl == null) throw new IllegalStateException("set the remote URL");
 		final String urlString = remoteUrl + "/" + methodName + getRequestQueryString(methodName, queryStringParams);
 		URL url = new URL(urlString);
 		return (HttpURLConnection) url.openConnection();
@@ -167,6 +188,7 @@ public final class GravityClient {
 		try (OutputStream outputStream = connection.getOutputStream()) {
 			try (final DataOutputStream wr = new DataOutputStream(outputStream)) {
 				final String requestJson = mapper.writeValueAsString(requestBody);
+				logger.debug("send request to '{}' with '{}'", connection.getURL(), requestJson);
 				wr.writeBytes(requestJson);
 				wr.flush();
 			}
