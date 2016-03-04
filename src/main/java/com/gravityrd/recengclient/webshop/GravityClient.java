@@ -12,6 +12,7 @@ import com.gravityrd.receng.web.webshop.jsondto.GravityRecommendationContext;
 import com.gravityrd.receng.web.webshop.jsondto.GravityScenario;
 import com.gravityrd.receng.web.webshop.jsondto.GravityUser;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.BufferedReader;
@@ -28,6 +29,7 @@ import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -53,14 +55,21 @@ import java.util.Map.Entry;
  * 		client.getItemRecommendation("user1", context);
  * </pre>
  */
+@SuppressWarnings("unused")
 public final class GravityClient {
 
-	private static final ObjectMapper mapper = new ObjectMapper(); // can reuse, share globally
+	protected static final ObjectMapper mapper = new ObjectMapper();
+
+	static {
+		mapper.getFactory().configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true);
+		mapper.getFactory().configure(JsonGenerator.Feature.ESCAPE_NON_ASCII, true);
+	}
+
 	/**
 	 * The version info of the client.
 	 */
 	@SuppressWarnings("FieldCanBeLocal")
-	private final String VERSION = "1.2.4";
+	private final String VERSION = "1.2.13";
 	/**
 	 * The URL of the server side interface. It has no default value, must be specified.
 	 */
@@ -95,10 +104,13 @@ public final class GravityClient {
 		HttpURLConnection connection = sendRequest(methodName, queryStringParams, requestBody);
 
 		if (connection.getResponseCode() / 100 != 2) {
+			final String responseBody = getBodyAsString(connection.getErrorStream());
+			final String message = String.format("response code %d, for method %s | query %s, url %s | request content %s", connection.getResponseCode(), methodName, queryStringParams, remoteUrl, requestBody.getClass().isArray() ? Arrays.toString((Object[]) requestBody) : requestBody);
+			if (responseBody == null) { throw new IllegalStateException(message); }
 			try {
-				throw mapper.readValue(getBodyAsString(connection.getErrorStream()), GravityRecEngException.class);
+				throw mapper.readValue(responseBody, GravityRecEngException.class);
 			} catch (Exception e) {
-				throw new IllegalStateException(getBodyAsString(connection.getErrorStream()), e);
+				throw new IllegalStateException(message + " body " + responseBody, e);
 			}
 		}
 		if (hasAnswer) {
@@ -120,11 +132,11 @@ public final class GravityClient {
 		setRequestHeaders(connection);
 		Authenticator.setDefault(new UserPasswordAuthenticator(userName, password));
 		sendPostRequest(requestBody, connection);
-
 		return connection;
 	}
 
 	private String getBodyAsString(InputStream input) throws IOException {
+		if (input == null) return null;
 		StringBuilder sb = new StringBuilder();
 		char[] buffer = new char[2048];
 		int readChars;
@@ -350,6 +362,7 @@ public final class GravityClient {
 		sendRequest("testException", null, null, true, null);
 	}
 
+	@SuppressWarnings("WeakerAccess")
 	private static class UserPasswordAuthenticator extends Authenticator {
 		private final String username, password;
 
