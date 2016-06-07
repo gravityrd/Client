@@ -45,7 +45,7 @@ import java.util.Map.Entry;
  * <pre>
  * 		public com.gravityrd.recengclient.webshop.GravityClient createGravityClient() {
  * 			com.gravityrd.recengclient.webshop.GravityClient client = new com.gravityrd.recengclient.webshop.GravityClient();
- * 			client.setRemoteUrl("https://saas.gravityrd.com/grrec-CustomerID-war/WebshopServlet");
+ * 			client.setRemoteUrl("https://<CUSTOMERID>-<SERVERLOCATION>.gravityrd-services.com/grrec-<CUSTOMERID>-war/WebshopServlet");
  * 			client.setUserName("sampleUser");
  * 			client.setPassword("samplePasswd");
  * 			return client;
