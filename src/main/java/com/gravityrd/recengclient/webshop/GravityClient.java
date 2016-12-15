@@ -12,10 +12,10 @@ import com.gravityrd.receng.web.webshop.jsondto.GravityRecommendationContext;
 import com.gravityrd.receng.web.webshop.jsondto.GravityScenario;
 import com.gravityrd.receng.web.webshop.jsondto.GravityUser;
 
-import org.apache.logging.log4j.LogManager;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.apache.commons.codec.binary.Base64;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -24,9 +24,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.Authenticator;
 import java.net.HttpURLConnection;
-import java.net.PasswordAuthentication;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -61,7 +59,7 @@ import java.util.Map.Entry;
 public final class GravityClient {
 
 	protected static final ObjectMapper mapper = new ObjectMapper();
-	private static final org.apache.logging.log4j.Logger logger = LogManager.getLogger();
+	private static final Charset UTF8 = Charset.forName("UTF-8");
 
 	static {
 		mapper.getFactory().configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true);
@@ -72,7 +70,7 @@ public final class GravityClient {
 	 * The version info of the client.
 	 */
 	@SuppressWarnings("FieldCanBeLocal")
-	private final String VERSION = "1.3.1";
+	private final String VERSION = "1.3.2";
 	/**
 	 * The URL of the server side interface. It has no default value, must be specified.
 	 */
@@ -111,7 +109,6 @@ public final class GravityClient {
 		if (hasAnswer) {
 			try (InputStream inputStream = connection.getInputStream()) {
 				final String bodyString = getBodyAsString(inputStream);
-				logger.debug("got answer: '{}'", bodyString);
 				try {
 					return mapper.readValue(bodyString, answerClass);
 				} catch (Exception e) {
@@ -128,7 +125,8 @@ public final class GravityClient {
 		setRequestHeaders(connection);
 		if (userName == null) throw new IllegalStateException("set the user name");
 		if (password == null) throw new IllegalStateException("set the password");
-		Authenticator.setDefault(new UserPasswordAuthenticator(userName, password));
+		String userPassword = userName + ":" + password;
+		connection.setRequestProperty("Authorization", "Basic " + new String(Base64.encodeBase64(userPassword.getBytes(UTF8)), UTF8));
 		sendPostRequest(requestBody, connection);
 		return connection;
 	}
@@ -138,7 +136,6 @@ public final class GravityClient {
 		final String responseBody = getBodyAsString(connection.getErrorStream());
 		final String b = requestBody == null ? "" : (requestBody.getClass().isArray() ? Arrays.toString((Object[]) requestBody) : requestBody.toString());
 		final String message = String.format("response code %d, for url %s | request content '%s' | answer '%s'", connection.getResponseCode(), connection.getURL(), b, responseBody);
-		logger.error(message);
 		if (responseBody == null) {
 			throw new IllegalStateException(message);
 		} else {
@@ -188,7 +185,6 @@ public final class GravityClient {
 		try (OutputStream outputStream = connection.getOutputStream()) {
 			try (final DataOutputStream wr = new DataOutputStream(outputStream)) {
 				final String requestJson = mapper.writeValueAsString(requestBody);
-				logger.debug("send request to '{}' with '{}'", connection.getURL(), requestJson);
 				wr.writeBytes(requestJson);
 				wr.flush();
 			}
@@ -383,20 +379,4 @@ public final class GravityClient {
 	public void testException() throws GravityRecEngException, IOException {
 		sendRequest("testException", null, null, true, null);
 	}
-
-	@SuppressWarnings("WeakerAccess")
-	private static class UserPasswordAuthenticator extends Authenticator {
-		private final String username, password;
-
-		public UserPasswordAuthenticator(String user, String pwd) {
-			username = user;
-			password = pwd;
-		}
-
-		@Override
-		protected PasswordAuthentication getPasswordAuthentication() {
-			return new PasswordAuthentication(username, password.toCharArray());
-		}
-	}
-
 }
