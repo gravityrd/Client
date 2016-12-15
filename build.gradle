@@ -6,7 +6,7 @@ plugins {
 
 group = "com.gravityrd"
 description = """java client to interact with the Gravity recommendation engine"""
-version = '1.3.2'
+version = '1.4.0'
 
 compileJava.options.encoding = 'UTF-8'
 sourceCompatibility = 1.7
@@ -29,6 +29,12 @@ dependencies {
     compile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
     compile 'commons-codec:commons-codec:1.10'
     testCompile 'junit:junit:4.12'
+}
+
+javadoc {
+	if (JavaVersion.current().isJava8Compatible()) {
+		options.addStringOption('Xdoclint:none', '-quiet')
+	}
 }
 
 task sourcesJar(type: Jar) {
