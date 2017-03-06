@@ -112,7 +112,7 @@ public final class GravityClient {
 				try {
 					return mapper.readValue(bodyString, answerClass);
 				} catch (Exception e) {
-					throw new IllegalStateException(bodyString, e);
+					throw new GravityRecEngException(e.getMessage(), "");
 				}
 			}
 		} else {
@@ -137,7 +137,7 @@ public final class GravityClient {
 		final String b = requestBody == null ? "" : (requestBody.getClass().isArray() ? Arrays.toString((Object[]) requestBody) : requestBody.toString());
 		final String message = String.format("response code %d, for url %s | request content '%s' | answer '%s'", connection.getResponseCode(), connection.getURL(), b, responseBody);
 		if (responseBody == null) {
-			throw new IllegalStateException(message);
+			throw new GravityRecEngException(message, "");
 		} else {
 			try {
 				// noinspection UnnecessaryLocalVariable
@@ -146,7 +146,7 @@ public final class GravityClient {
 			} catch (GravityRecEngException e) {
 				throw e;
 			} catch (Exception e) {
-				throw new IllegalStateException(message + " body " + responseBody, e);
+				throw new GravityRecEngException(message + " body " + responseBody, "");
 			}
 		}
 
