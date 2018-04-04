@@ -294,6 +294,62 @@ public final class GravityClient {
 	}
 
 	/**
+	 * Retrieves user metadata from the recommendation engine.
+	 *
+	 * @param userId {@link GravityUser#userId}
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer files
+	 */
+	public GravityUser getUserByUserId(String userId) throws GravityRecEngException, IOException {
+		HashMap<String, String> queryStringParams = new HashMap<>(1);
+		queryStringParams.put("userId", userId);
+		return (GravityUser) sendRequest("getUser", queryStringParams, null, true, GravityUser.class);
+	}
+
+	/**
+	 * Retrieves user metadata from the recommendation engine if a user can be recognized from the specified cookieId.
+	 *
+	 * @param cookieId {@link GravityEvent#cookieId}
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer files
+	 */
+	public GravityUser getUserByCookieId(String cookieId) throws GravityRecEngException, IOException {
+		HashMap<String, String> queryStringParams = new HashMap<>(1);
+		queryStringParams.put("cookieId", cookieId);
+		return (GravityUser) sendRequest("getUser", queryStringParams, null, true, GravityUser.class);
+	}
+
+	/**
+	 * Retrieves full event history associated with the userId from the recommendation engine.
+	 *
+	 * @param userId {@link GravityEvent#userId}
+	 * @param limit upper limit for returned events. If 0 or negative a default limit will be used
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer files
+	 */
+	public GravityEvent[] getEventsByUserId(String userId, int limit) throws GravityRecEngException, IOException {
+		HashMap<String, String> queryStringParams = new HashMap<>(1);
+		queryStringParams.put("userId", userId);
+		if (limit > 0) queryStringParams.put("limit", String.valueOf(limit));
+		return (GravityEvent[]) sendRequest("getEvents", queryStringParams, null, true, GravityEvent[].class);
+	}
+
+	/**
+	 * Retrieves full event history associated with the cookieId from the recommendation engine.
+	 *
+	 * @param cookieId {@link GravityEvent#cookieId}
+	 * @param limit upper limit for returned events. If 0 or negative a default limit will be used
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if cannot process the answer files
+	 */
+	public GravityEvent[] getEventsByCookieId(String cookieId, int limit) throws GravityRecEngException, IOException {
+		HashMap<String, String> queryStringParams = new HashMap<>(1);
+		queryStringParams.put("cookieId", cookieId);
+		if (limit > 0) queryStringParams.put("limit", String.valueOf(limit));
+		return (GravityEvent[]) sendRequest("getEvents", queryStringParams, null, true, GravityEvent[].class);
+	}
+
+	/**
 	 * Adds items to the recommendation engine.
 	 * If an item already exists with the specified itemId,
 	 * the entire item along with its NameValue pairs will be replaced to the new item specified here.
