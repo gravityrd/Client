@@ -350,6 +350,32 @@ public final class GravityClient {
 	}
 
 	/**
+	 * Deletes full event history and metadata assigned with the given userId from the recommendation engine.
+	 *
+	 * @param userId {@link GravityEvent#userId}
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if the userId is invalid
+	 */
+	public void optOutUser(String userId) throws GravityRecEngException, IOException {
+		HashMap<String, String> queryStringParams = new HashMap<>(1);
+		queryStringParams.put("userId", userId);
+		sendRequest("optOut", queryStringParams, null, false, null);
+	}
+
+	/**
+	 * Deletes full event history assigned with the given cookieId from the recommendation engine.
+	 *
+	 * @param cookieId {@link GravityEvent#cookieId}
+	 * @throws IOException if cannot connect
+	 * @throws GravityRecEngException if the cookieId is invalid
+	 */
+	public void optOutCookie(String cookieId) throws GravityRecEngException, IOException {
+		HashMap<String, String> queryStringParams = new HashMap<>(1);
+		queryStringParams.put("cookieId", cookieId);
+		sendRequest("optOut", queryStringParams, null, false, null);
+	}
+
+	/**
 	 * Adds items to the recommendation engine.
 	 * If an item already exists with the specified itemId,
 	 * the entire item along with its NameValue pairs will be replaced to the new item specified here.
