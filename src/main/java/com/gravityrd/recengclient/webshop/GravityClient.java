@@ -70,7 +70,7 @@ public final class GravityClient {
 	 * The version info of the client.
 	 */
 	@SuppressWarnings("FieldCanBeLocal")
-	private final String VERSION = "1.4.0";
+	private final String VERSION = "1.5.2";
 	/**
 	 * The URL of the server side interface. It has no default value, must be specified.
 	 */
